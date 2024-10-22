@@ -1,39 +1,32 @@
-const jwt = require('jsonwebtoken')
-const {JWT_SECRET} = require('../constants')
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../constants');
 
-const signToken = (payload = {}, expiresIn = '12h') => {
-  const token = jwt.sign(payload, JWT_SECRET, {expiresIn})
-
-  return token
-}
-
-const authorizeBearerToken = (request, response, next) => {
+// Middleware
+const authorizeBearerToken = (req, res, next) => {
   try {
-    const token = request.headers.authorization?.split(' ')[1]
+    // Extract token 
+    const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-      return response.status(400).json({
-        message: 'Token not provided',
-      })
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
 
-    const auth = jwt.verify(token, JWT_SECRET)
-    if (!auth) {
-      return response.status(401).json({
-        message: 'Unauthorized - invalid token',
-      })
-    }
-
-    request.auth = auth
-    next()
+    // Verify the token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
   } catch (error) {
-    console.error(error)
-    return response.status(401).json({
-      message: 'Unauthorized - invalid token',
-    })
+    console.error("JWT Verification Error:", error);
+    return res.status(401).json({ message: 'Unauthorized - Invalid token.' });
   }
-}
+};
+
+// New JWT token
+const signToken = (payload = {}, expiresIn = '12h') => {
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return token;
+};
 
 module.exports = {
   authorizeBearerToken,
   signToken,
-}
+};
